@@ -4,7 +4,7 @@ using LD28.Scene;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace LD28.Renderables
+namespace LD28.Movables
 {
 	/// <summary>
 	/// Renders a circle of the given radius. Use this for debugging.

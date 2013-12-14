@@ -1,33 +1,38 @@
-﻿using LD28.Entities.Terrain;
+﻿using FarseerPhysics.DebugViews;
+using LD28.Entities.Player;
+using LD28.Entities.Terrain;
 using LD28.Entity;
 using LD28.Movables;
 using LD28.Scene;
 using LD28.Screen;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 
 namespace LD28.Screens
 {
-	/// <summary>
-	/// This screen shows the level.
-	/// </summary>
-	public class TerrainTest : IScreen
+	public class MainLevel : IScreen
 	{
 		private readonly LD28Game _game;
 		private readonly GraphicsDevice _graphics;
+		private readonly ContentManager _content;
 
 		private SpriteBatch _spriteBatch;
+
+		private DebugViewXNA _debugView;
 
 		private ICamera _camera;
 		private ISceneNode _cameraNode;
 
-		private ITerrainBrush _circleBrush;
-		private ISceneNode _circleBrushNode;
-
-		private IEntityWorld _world;
+		private DynamicEntityWorld _world;
 		private Terrain _terrain;
 
+		private SpaceShip _playerEntity;
+		private ISceneNode _dustCloud;
+
+		private ITerrainBrush _circleBrush;
+		private ISceneNode _circleBrushNode;
 		private MouseState _oldMouseState;
 
 		public bool IsPopup
@@ -38,30 +43,34 @@ namespace LD28.Screens
 		/// <summary>
 		/// Public constructor.
 		/// </summary>
-		public TerrainTest(LD28Game game)
+		public MainLevel(LD28Game game)
 		{
 			_game = game;
 			_graphics = _game.GraphicsDevice;
+			_content = game.Content;
 		}
 
 		public void LoadContent()
 		{
 			_spriteBatch = new SpriteBatch(_graphics);
-
-			_world = new StaticEntityWorld(_game.Services);
-
+			_world = new DynamicEntityWorld(_game.Services);
 			var pp = _graphics.PresentationParameters;
+
+			_debugView = new DebugViewXNA(_world.PhysicsWorld);
+			_debugView.LoadContent(_graphics, _content);
+
 			_camera = new DefaultCamera(null, new Viewport(0, 0, pp.BackBufferWidth, pp.BackBufferHeight));
 			_cameraNode = _world.Scene.Root.CreateChild("Camera");
-			_cameraNode.Position = new Vector3(_camera.ScreenSize / 2.0f, 0.0f);
-			_cameraNode.Scale = new Vector3(.5f);
 			_cameraNode.Attach(_camera);
 
 			// Create the tile map.
-			_terrain = new Terrain(new Vector2(102.4f, 102.4f), 51.2f, 9);
-			_terrain.DebugEnabled = true;
-			_world.Add(_terrain);		
-	
+			_terrain = new Terrain(new Vector2(256.0f, 256.0f), 128.0f, 6)
+			{
+				DebugEnabled = true,
+				Position = new Vector3(50.0f, -128.0f, 0.0f)
+			};
+			_world.Add(_terrain);
+
 			// Create the circle brush.
 			_circleBrush = new TerrainCircleBrush(2.5f);
 
@@ -70,64 +79,35 @@ namespace LD28.Screens
 			{
 				Color = Vector3.One
 			});
+
+			// Dust cloud
+			_dustCloud = _world.Scene.CreateSceneNode("DustCloud");
+			_dustCloud.Attach(new DustCloud());
+			_world.Scene.Root.AddChild(_dustCloud);
+
+			// Player
+			_playerEntity = new SpaceShip();
+			_playerEntity.Attach(new PlayerController());
+			_playerEntity.Orientation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.ToRadians(90.0f));
+
+			_world.Add(_playerEntity);
 		}
 
 		public void UnloadContent()
 		{
-			// Dispose entities.
 			_world.Dispose();
-
-			// Dispose graphics resources.
 			_spriteBatch.Dispose();
+			_debugView.Dispose();
 		}
 
 		public void Update(GameTime gameTime, bool isActive, bool isOverlayed)
 		{
 			_world.Update(gameTime, _camera);
 
-			#region Camera
-			// Move the camera.
+			// Follow player.
 			var dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
-			var keyboardState = Keyboard.GetState();
-
-			if (keyboardState.IsKeyDown(Keys.A))
-			{
-				_cameraNode.Move(new Vector3(-50.0f * dt, 0.0f, 0.0f));
-			}
-			if (keyboardState.IsKeyDown(Keys.D))
-			{
-				_cameraNode.Move(new Vector3(50.0f * dt, 0.0f, 0.0f));
-			}
-			if (keyboardState.IsKeyDown(Keys.S))
-			{
-				_cameraNode.Move(new Vector3(0.0f, 50.0f * dt, 0.0f));
-			}
-			if (keyboardState.IsKeyDown(Keys.W))
-			{
-				_cameraNode.Move(new Vector3(0.0f, -50.0f * dt, 0.0f));
-			}
-
-			if (keyboardState.IsKeyDown(Keys.E))
-			{
-				_cameraNode.Scale += Vector3.One * 1.0f * dt;
-			}
-			if (keyboardState.IsKeyDown(Keys.Q))
-			{
-				var scale = _cameraNode.Scale;
-
-				scale -= Vector3.One * 1.0f * dt;
-				if (scale.X < 0.0f)
-				{
-					scale.X = 0.0f;
-				}
-				if (scale.Y < 0.0f)
-				{
-					scale.Y = 0.0f;
-				}
-
-				_cameraNode.Scale = scale;
-			}
-			#endregion
+			var cameraVector = _playerEntity.Position - _cameraNode.Position;
+			_cameraNode.Position += cameraVector * dt * 5.0f;
 
 			#region Circle brush
 
@@ -135,7 +115,7 @@ namespace LD28.Screens
 
 			// Translate the mouse position to the scene.
 			var mousePosition = new Vector3(mouseState.X, mouseState.Y, 0.0f);
-			
+
 			Matrix projectionMatrix, viewMatrix;
 			_camera.GetMatrices(out projectionMatrix, out viewMatrix);
 
@@ -187,13 +167,19 @@ namespace LD28.Screens
 		{
 			// Clear our screen texture.
 			_camera.Apply(_graphics);
-			_graphics.Clear(Color.CornflowerBlue);
+			_graphics.Clear(Color.Black);
 
 			// Draw the terrain.
-			_terrain.Draw(gameTime, _camera);		
-	
-			// Draw the brush.
-			_circleBrushNode.FindMovable<CircleRenderable>().Render(gameTime, _camera);
+			_terrain.Draw(gameTime, _camera);
+
+			foreach (IRenderable renderable in _world.Scene.Collect(typeof(IRenderable)))
+			{
+				renderable.Render(gameTime, _camera);
+			}
+
+			Matrix projectionMatrix, viewMatrix;
+			_camera.GetMatrices(out projectionMatrix, out viewMatrix);
+			_debugView.RenderDebugData(ref projectionMatrix, ref viewMatrix);
 		}
 	}
 }

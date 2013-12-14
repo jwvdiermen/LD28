@@ -47,7 +47,8 @@ namespace LD28
 		protected override void Initialize()
 		{
 			_screenManager = new ScreenManager(this);
-			_screenManager.ActivateScreen(new Screens.TerrainTest(this));
+			//_screenManager.ActivateScreen(new Screens.TerrainTest(this));
+			_screenManager.ActivateScreen(new Screens.MainLevel(this));
 
 			Components.Add(_screenManager);
 

@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using FarseerPhysics.Dynamics;
+using FarseerPhysics.Factories;
 using Microsoft.Xna.Framework;
 
 namespace LD28.Entities.Terrain
@@ -13,13 +15,14 @@ namespace LD28.Entities.Terrain
 	{
 		private readonly int _maxDepth;
 		private BoundingBox _boundingBox;
+		private Fixture _fixture;
 
 		/// <summary>
 		/// Gets if the node is at the root.
 		/// </summary>
 		public bool IsRoot
 		{
-			get { return this.Parent == null; }
+			get { return Parent == null; }
 		}
 
 		/// <summary>
@@ -45,7 +48,7 @@ namespace LD28.Entities.Terrain
 		/// </summary>
 		public bool IsLeaf
 		{
-			get { return this.Depth == _maxDepth; }
+			get { return Depth == _maxDepth; }
 		}
 
 		/// <summary>
@@ -66,7 +69,7 @@ namespace LD28.Entities.Terrain
 		/// </summary>
 		public bool HasChilds
 		{
-			get { return this.Childs != null; }
+			get { return Childs != null; }
 		}
 
 		/// <summary>
@@ -74,7 +77,7 @@ namespace LD28.Entities.Terrain
 		/// </summary>
 		public bool HasDisabledChilds
 		{
-			get { return this.Childs.FirstOrDefault(e => e.IsEnabled == false) != null; }
+			get { return Childs.FirstOrDefault(e => e.IsEnabled == false) != null; }
 		}
 
 		/// <summary>
@@ -88,12 +91,12 @@ namespace LD28.Entities.Terrain
 
 		internal QuadTreeNode(QuadTreeNode parent, int maxDepth, BoundingBox boundingBox, bool enabled)
 		{
-			this.Parent = parent;
-			this.Depth = parent != null ? parent.Depth + 1 : 0;
+			Parent = parent;
+			Depth = parent != null ? parent.Depth + 1 : 0;
 			_maxDepth = maxDepth;
 			_boundingBox = boundingBox;
 
-			this.IsEnabled = enabled;
+			IsEnabled = enabled;
 		}
 
 		/// <summary>
@@ -104,16 +107,16 @@ namespace LD28.Entities.Terrain
 		/// <param name="state">True to only collect if enabled, false if to collect when disabled.</param>
 		public void CollectGeometry(ICollection<Vector2> vertices, ICollection<ushort> indices, bool state = true)
 		{
-			var childs = this.Childs;
+			var childs = Childs;
 			if (childs != null)
 			{
-				for (int i = 0; i < 4; ++i)
+				for (var i = 0; i < 4; ++i)
 				{
 					var child = childs[i];
 					child.CollectGeometry(vertices, indices, state);
 				}
 			}
-			else if (this.IsEnabled == state)
+			else if (IsEnabled == state)
 			{
 				var min = _boundingBox.Min;
 				var max = _boundingBox.Max;
@@ -134,23 +137,81 @@ namespace LD28.Entities.Terrain
 			}
 		}
 
+		internal void UpdateFixtures(Body body)
+		{
+			if ((!IsEnabled || HasChilds) && _fixture != null)
+			{
+				_fixture.Body.DestroyFixture(_fixture);
+				_fixture = null;
+			}
+
+			if (HasChilds)
+			{
+				foreach (var child in Childs)
+				{
+					if (child.IsEnabled)
+					{
+						child.UpdateFixtures(body);
+					}
+				}
+			}
+			else if (IsEnabled && _fixture == null)
+			{
+				var min = _boundingBox.Min;
+				var size = _boundingBox.Max - min;
+				var halfSize = size / 2.0f;
+				var offset = new Vector2(min.X + halfSize.X, min.Y + halfSize.Y);
+				_fixture = FixtureFactory.AttachRectangle(size.X, size.Y, 0.0f, offset, body);
+			}
+		}
+
+		internal void DestroyFixtures()
+		{
+			if (_fixture != null)
+			{
+				_fixture.Body.DestroyFixture(_fixture);
+				_fixture = null;
+			}
+			
+			if (HasChilds)
+			{
+				foreach (var child in Childs)
+				{
+					if (child.IsEnabled)
+					{
+						child.DestroyFixtures();
+					}
+				}
+			}
+		}
+
 		/// <summary>
 		/// Changes the state of the intersected quads.
 		/// </summary>
 		/// <param name="brush">The brush.</param>
+		/// <param name="offset">The offset.</param>
 		/// <param name="state">The state, either enabled or disabled.</param>
 		/// <returns>True if any quads were changed.</returns>
-		public bool SetQuads(ITerrainBrush brush, bool state)
+		public bool SetQuads(ITerrainBrush brush, Vector2 offset, bool state)
 		{
-			bool changed = false;
+			var changed = false;
 
-			if (this.IsEnabled != state || this.HasChilds == true)
+			var boundingBox = new BoundingBox(
+				_boundingBox.Min + new Vector3(offset, 0.0f), 
+				_boundingBox.Max + new Vector3(offset, 0.0f));
+
+			if (IsEnabled != state || HasChilds)
 			{
-				var containment = brush.Contains(ref _boundingBox);
+				var containment = brush.Contains(ref boundingBox);
 				if (containment == ContainmentType.Contains)
 				{
-					this.IsEnabled = state;
-					this.Childs = null; // <-- Remove any childs.
+					IsEnabled = state;
+					if (!IsEnabled)
+					{
+						DestroyFixtures();
+					}
+
+					Childs = null;
 					changed = true;
 				}
 				else if (containment == ContainmentType.Intersects)
@@ -159,58 +220,74 @@ namespace LD28.Entities.Terrain
 					// until we have reached the maximum depth, or have found a child which is contained.
 
 					// Create childs if necessary.
-					if (this.Childs == null && this.Depth < _maxDepth)
+					if (Childs == null && Depth < _maxDepth)
 					{
 						var min = _boundingBox.Min;
 						var max = _boundingBox.Max;
 						var center = min + ((max - min) / 2.0f);
 
-						this.Childs = new QuadTreeNode[]
+						Childs = new[]
 						{
-							new QuadTreeNode(this, _maxDepth, new BoundingBox(min, center), this.IsEnabled),
-							new QuadTreeNode(this, _maxDepth, new BoundingBox(new Vector3(center.X, min.Y, 0.0f), new Vector3(max.X, center.Y, 0.0f)), this.IsEnabled),
-							new QuadTreeNode(this, _maxDepth, new BoundingBox(new Vector3(min.X, center.Y, 0.0f), new Vector3(center.X, max.Y, 0.0f)), this.IsEnabled),
-							new QuadTreeNode(this, _maxDepth, new BoundingBox(center, max), this.IsEnabled)
+							new QuadTreeNode(this, _maxDepth, new BoundingBox(min, center), IsEnabled),
+							new QuadTreeNode(this, _maxDepth, new BoundingBox(new Vector3(center.X, min.Y, 0.0f), new Vector3(max.X, center.Y, 0.0f)), IsEnabled),
+							new QuadTreeNode(this, _maxDepth, new BoundingBox(new Vector3(min.X, center.Y, 0.0f), new Vector3(center.X, max.Y, 0.0f)), IsEnabled),
+							new QuadTreeNode(this, _maxDepth, new BoundingBox(center, max), IsEnabled)
 						};
+
+						changed = true;
 					}
 
 					// Recurse down.
-					if (this.Childs != null)
+					if (Childs != null)
 					{
 						// Try to change the state of our child quads.
-						bool canCollapse = true;
-						foreach (var child in this.Childs)
+						var canCollapse = true;
+						foreach (var child in Childs)
 						{
-							if (child.SetQuads(brush, state) == true)
+							if (child.SetQuads(brush, offset, state))
 							{
 								changed = true;
 							}
 
 							// We can't collapse if any of our child also has childs,
 							// or if one of our childs has a different state.
-							if (child.IsEnabled != state || child.HasChilds == true)
+							if (child.IsEnabled != state || child.HasChilds)
 							{
 								canCollapse = false;
 							}
 						}
 
-						if (canCollapse == true)
+						if (canCollapse)
 						{
 							// All childs have the same correct state, so simplify.
-							this.IsEnabled = state;
-							this.Childs = null;
+							IsEnabled = state;
+							if (!IsEnabled)
+							{
+								DestroyFixtures();
+							}
+
+							foreach (var child in Childs)
+							{
+								child.DestroyFixtures();
+							}
+							Childs = null;
 						}
 						else
 						{
 							// Not all childs have the same state, so we have to be enabled.
-							this.IsEnabled = true;
+							IsEnabled = true;
 						}
 					}
 					else
 					{
 						// We can't recure down because we are at the maximum depth,
 						// so handle as if we were "contained".
-						this.IsEnabled = state;
+						IsEnabled = state;
+						if (!IsEnabled)
+						{
+							DestroyFixtures();
+						}
+
 						changed = true;
 					}
 				}

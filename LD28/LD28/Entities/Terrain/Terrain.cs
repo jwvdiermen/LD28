@@ -1,15 +1,10 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Content;
-using Microsoft.Xna.Framework.Graphics;
-
+using FarseerPhysics.Dynamics;
+using FarseerPhysics.Factories;
 using LD28.Entity;
 using LD28.Scene;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace LD28.Entities.Terrain
 {
@@ -61,7 +56,7 @@ namespace LD28.Entities.Terrain
 		/// <param name="blockSize">The size of a single block. The terrain size should be dividable by it.</param>
 		/// <param name="maxDepth">The maximum division depth for the quad trees.</param>
 		/// <param name="name">The name of the entity.</param>
-		public Terrain(Vector2 terrainSize, float blockSize, int maxDepth, string name = null)
+		public Terrain(Vector2 terrainSize, float blockSize, int maxDepth, string name = "Terrain")
 			: base(name)
 		{
 			if (_terrainSize.X % blockSize > 0.0f)
@@ -73,21 +68,11 @@ namespace LD28.Entities.Terrain
 				throw new Exception("The height of the terrain size is not dividable by the block size.");
 			}
 
-			//var blockDepth = blockSize;
-			//for (int i = 0; i < maxDepth; ++i)
-			//{
-			//    blockDepth /= 2.0f;
-			//    if (blockDepth % 2 > 0)
-			//    {
-			//        throw new Exception("The given block size does not support the maximum depth of " + maxDepth + ".");
-			//    }
-			//}
-
 			_terrainSize = terrainSize;
 			_blockSize = blockSize;
 			_maxDepth = maxDepth;
 
-			this.DebugEnabled = false;
+			DebugEnabled = false;
 			_debugRasterizerState = new RasterizerState
 			{
 				CullMode = CullMode.CullCounterClockwiseFace,
@@ -112,21 +97,27 @@ namespace LD28.Entities.Terrain
 			};
 
 			// Create the quad trees.
-			int gridWidth = (int)(_terrainSize.X / _blockSize);
-			int gridHeight = (int)(_terrainSize.Y / _blockSize);
+			var gridWidth = (int)(_terrainSize.X / _blockSize);
+			var gridHeight = (int)(_terrainSize.Y / _blockSize);
 
 			_blockGrid = new QuadTree[gridWidth, gridHeight];
-			for (int y = 0; y < gridHeight; ++y)
+			for (var y = 0; y < gridHeight; ++y)
 			{
-				for (int x = 0; x < gridWidth; ++x)
+				for (var x = 0; x < gridWidth; ++x)
 				{
-					var quadTree = new QuadTree(_maxDepth, new BoundingBox(
-						new Vector3(x * _blockSize, y * _blockSize, 0.0f),
-						new Vector3((x + 1) * _blockSize, (y + 1) * _blockSize, 0.0f)));
+					var quadTree = new QuadTree(_maxDepth, new Vector2(_blockSize, _blockSize), Name + "_" + x + "x" + y)
+					{
+						Position = Position + new Vector3(x * _blockSize, y * _blockSize, 0.0f)
+					};
 
 					quadTree.LoadContent(services);
 
 					_blockGrid[x, y] = quadTree;
+
+					if (World != null)
+					{
+						quadTree.World = World;
+					}
 				}
 			}
 		}
@@ -147,14 +138,14 @@ namespace LD28.Entities.Terrain
 			}
 		}
 
-		public override void Update(GameTime gameTime, ICamera camera)
+		protected override void OnWorldChanged(IEntityWorld world)
 		{
-			base.Update(gameTime, camera);
-
-			// Update the quad trees.
-			foreach (var quadTree in _blockGrid)
+			if (_blockGrid != null)
 			{
-				quadTree.Update(gameTime);
+				foreach (var quadTree in _blockGrid)
+				{
+					quadTree.World = world;
+				}
 			}
 		}
 
@@ -171,42 +162,35 @@ namespace LD28.Entities.Terrain
 			Matrix projectionMatrix, viewMatrix;
 			camera.GetMatrices(out projectionMatrix, out viewMatrix);
 
-			_debugEffect.Projection = projectionMatrix;
-			_debugEffect.View = viewMatrix;
-			_debugEffect.World = SceneNode.Transformation;
 
 			// Draw the enabled quads.
-			_debugEffect.DiffuseColor = new Vector3(0.0f, 1.0f, 0.0f);
-			foreach (var effectPass in _debugEffect.CurrentTechnique.Passes)
+			_debugEffect.DiffuseColor = new Vector3(0.0f, 0.0f, 1.0f);
+			foreach (var quadTree in _blockGrid)
 			{
-				effectPass.Apply();
-				foreach (var quadTree in _blockGrid)
+				_debugEffect.Projection = projectionMatrix;
+				_debugEffect.View = viewMatrix;
+				_debugEffect.World = quadTree.SceneNode.Transformation;
+				foreach (var effectPass in _debugEffect.CurrentTechnique.Passes)
 				{
+					effectPass.Apply();
 					quadTree.Draw(true);
 				}
 			}
+			
 
-			// Draw the disabled quads.
+			//// Draw the disabled quads.
 			_debugEffect.DiffuseColor = new Vector3(1.0f, 0.0f, 0.0f);
-			foreach (var effectPass in _debugEffect.CurrentTechnique.Passes)
+			foreach (var quadTree in _blockGrid)
 			{
-				effectPass.Apply();
-				foreach (var quadTree in _blockGrid)
+				_debugEffect.Projection = projectionMatrix;
+				_debugEffect.View = viewMatrix;
+				_debugEffect.World = quadTree.SceneNode.Transformation;
+				foreach (var effectPass in _debugEffect.CurrentTechnique.Passes)
 				{
+					effectPass.Apply();
 					quadTree.Draw(false);
 				}
 			}
-
-			//// Draw the edge geometry.
-			//_debugEffect.DiffuseColor = new Vector3(0.0f, 0.0f, 1.0f);
-			//foreach (var effectPass in _debugEffect.CurrentTechnique.Passes)
-			//{
-			//    effectPass.Apply();
-			//    foreach (var quadTree in _blockGrid)
-			//    {
-			//        quadTree.DrawEdge();
-			//    }
-			//}
 		}
 
 		/// <summary>

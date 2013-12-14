@@ -143,6 +143,8 @@
     <Compile Include="Core\ReadOnlyList.cs" />
     <Compile Include="Core\TimeSpanExtensions.cs" />
     <Compile Include="DebugInfo.cs" />
+    <Compile Include="Entities\Player\PlayerController.cs" />
+    <Compile Include="Entities\Player\SpaceShip.cs" />
     <Compile Include="Entities\Terrain\ITerrainBrush.cs" />
     <Compile Include="Entities\Terrain\QuadTree.cs" />
     <Compile Include="Entities\Terrain\QuadTreeNode.cs" />
@@ -159,10 +161,11 @@
     <Compile Include="Entity\IPhysicalEntity.cs" />
     <Compile Include="Entity\PhysicalEntityBase.cs" />
     <Compile Include="Entity\StaticEntityWorld.cs" />
+    <Compile Include="Movables\DustCloud.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="LD28Game.cs" />
-    <Compile Include="Renderables\CircleRenderable.cs" />
+    <Compile Include="Movables\CircleRenderable.cs" />
     <Compile Include="Scene\DefaultCamera.cs" />
     <Compile Include="Scene\DefaultLayer.cs" />
     <Compile Include="Scene\DefaultScene.cs" />
@@ -177,6 +180,9 @@
     <Compile Include="Scene\MovableAdded.cs" />
     <Compile Include="Scene\MovableRemoved.cs" />
     <Compile Include="Scene\SceneNode.cs" />
+    <Compile Include="Screens\MainLevel.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Screens\TerrainTest.cs" />
     <Compile Include="Screen\IScreen.cs" />
     <Compile Include="Screen\IScreenManager.cs" />
