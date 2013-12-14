@@ -90,7 +90,7 @@ namespace LD28.Entity
 				}
 				else if (_entityWorld != value && value != null)
 				{
-					IEntityWorld previousWorld = _entityWorld;
+					var previousWorld = _entityWorld;
 					_entityWorld = null;
 
 					previousWorld.Remove(this);

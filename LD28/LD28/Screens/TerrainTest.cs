@@ -63,7 +63,7 @@ namespace LD28.Screens
 			_world.Add(_terrain);		
 	
 			// Create the circle brush.
-			_circleBrush = new TerrainCircleBrush(2.5f);
+			_circleBrush = new CircleBrush(2.5f);
 
 			_circleBrushNode = _world.Scene.CreateSceneNode();
 			_circleBrushNode.Attach(new CircleRenderable(2.5f, 64)

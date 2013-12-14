@@ -1,4 +1,7 @@
-﻿using FarseerPhysics.DebugViews;
+﻿using System.Runtime.InteropServices;
+using FarseerPhysics.DebugViews;
+using FarseerPhysics.Dynamics;
+using LD28.Core;
 using LD28.Entities.Player;
 using LD28.Entities.Terrain;
 using LD28.Entity;
@@ -24,15 +27,21 @@ namespace LD28.Screens
 
 		private ICamera _camera;
 		private ISceneNode _cameraNode;
+		private bool _cameraFreeMode = false;
 
 		private DynamicEntityWorld _world;
 		private Terrain _terrain;
 
 		private SpaceShip _playerEntity;
+		private Payload _payloadEntity;
+		private PayloadChain _payloadChain;
+
 		private ISceneNode _dustCloud;
 
 		private ITerrainBrush _circleBrush;
 		private ISceneNode _circleBrushNode;
+
+		private KeyboardState _oldKeyboardState;
 		private MouseState _oldMouseState;
 
 		public bool IsPopup
@@ -64,15 +73,18 @@ namespace LD28.Screens
 			_cameraNode.Attach(_camera);
 
 			// Create the tile map.
-			_terrain = new Terrain(new Vector2(256.0f, 256.0f), 128.0f, 6)
+			var terrainSize = new Vector2(4096.0f, 2048.0f);
+			_terrain = new Terrain(terrainSize, 128.0f, 6)
 			{
-				DebugEnabled = true,
-				Position = new Vector3(50.0f, -128.0f, 0.0f)
+				DebugEnabled = false,
+				Position = new Vector3(50.0f, -terrainSize.Y / 2.0f, 0.0f)
 			};
 			_world.Add(_terrain);
 
+			GenerateTunnels(new Vector2(50.0f, 0));
+
 			// Create the circle brush.
-			_circleBrush = new TerrainCircleBrush(2.5f);
+			_circleBrush = new CircleBrush(2.5f);
 
 			_circleBrushNode = _world.Scene.CreateSceneNode();
 			_circleBrushNode.Attach(new CircleRenderable(2.5f, 64)
@@ -89,8 +101,13 @@ namespace LD28.Screens
 			_playerEntity = new SpaceShip();
 			_playerEntity.Attach(new PlayerController());
 			_playerEntity.Orientation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.ToRadians(90.0f));
-
 			_world.Add(_playerEntity);
+
+			_payloadEntity = new Payload();
+			_payloadEntity.Orientation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.ToRadians(90.0f));
+			_world.Add(_payloadEntity);
+
+			_payloadChain = PayloadChain.Connect(_playerEntity, _payloadEntity, Vector2.UnitX * -20.0f);
 		}
 
 		public void UnloadContent()
@@ -100,18 +117,102 @@ namespace LD28.Screens
 			_debugView.Dispose();
 		}
 
+		private void GenerateTunnels(Vector2 start, float maxLength = 4000.0f, float turnStrength = 0.1f)
+		{
+			//1234
+			//498764867
+			//582764
+			var random = new FastRandom(12345);
+			const float step = 1.0f;
+
+			var terrainHeight = _terrain.TerrainSize.Y / 2.0f;
+			var maxSize = new Vector2(20.0f);
+
+			var currentPosition = start;
+			var currentDirection = Vector2.UnitX;
+
+			var length = 0.0f;
+			while (length < maxLength)
+			{
+				var brushSize = new Vector2(random.NextFloat() * maxSize.X, random.NextFloat() * maxSize.Y);
+				var brush = new RectangleBrush(
+					brushSize, 
+					currentPosition + new Vector2(random.NextRangedFloat(), random.NextRangedFloat()));
+
+				_terrain.SetQuads(brush, false, true);
+
+				// Add rotation.
+				var rotationDir = random.NextRangedFloat();
+
+				// Prevent going outside terrain or going back.
+				if (currentPosition.Y > terrainHeight - 200.0f ||
+					(currentDirection.X < 0.0f && currentDirection.Y > 0.0f))
+				{
+					rotationDir = (rotationDir - 1.0f) * 0.1f;
+				}
+				else if (currentPosition.Y < -(terrainHeight + 200.0f) ||
+					(currentDirection.X < 0.0f && currentDirection.Y < 0.0f))
+				{
+					rotationDir = (rotationDir + 1.0f) * 0.1f;
+				}
+
+				// Apply rotation.
+				var rotation = rotationDir * turnStrength;
+				currentDirection = new Vector2(
+					currentDirection.X * MathCore.Cos(rotation) + -currentDirection.Y * MathCore.Sin(rotation),
+					currentDirection.Y * MathCore.Cos(rotation) + currentDirection.X * MathCore.Sin(rotation));
+
+				currentPosition += currentDirection * step;
+				length += step;
+			}
+
+			_terrain.Refresh();
+		}
+
 		public void Update(GameTime gameTime, bool isActive, bool isOverlayed)
 		{
 			_world.Update(gameTime, _camera);
 
-			// Follow player.
 			var dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
-			var cameraVector = _playerEntity.Position - _cameraNode.Position;
-			_cameraNode.Position += cameraVector * dt * 5.0f;
+
+			var keyboardState = Keyboard.GetState();
+			var mouseState = Mouse.GetState();
+
+			if (_cameraFreeMode)
+			{
+				// Free mode when enabled.
+				if (keyboardState.IsKeyDown(Keys.W) || keyboardState.IsKeyDown(Keys.Up))
+				{
+					_cameraNode.Position += new Vector3(-Vector2.UnitY, 0.0f) * 100.0f * dt;
+				}
+				if (keyboardState.IsKeyDown(Keys.S) || keyboardState.IsKeyDown(Keys.Down))
+				{
+					_cameraNode.Position += new Vector3(Vector2.UnitY, 0.0f) * 100.0f * dt;
+				}
+
+				if (keyboardState.IsKeyDown(Keys.D) || keyboardState.IsKeyDown(Keys.Right))
+				{
+					_cameraNode.Position += new Vector3(Vector2.UnitX, 0.0f) * 100.0f * dt;
+				}
+				if (keyboardState.IsKeyDown(Keys.A) || keyboardState.IsKeyDown(Keys.Left))
+				{
+					_cameraNode.Position += new Vector3(-Vector2.UnitX, 0.0f) * 100.0f * dt;
+				}
+			}
+			else
+			{
+				// Follow player.
+				var cameraVector = _playerEntity.Position - _cameraNode.Position;
+				_cameraNode.Position += cameraVector * dt * 5.0f;
+			}
+
+			if (keyboardState.IsKeyDown(Keys.F) && _oldKeyboardState.IsKeyUp(Keys.F))
+			{
+				_cameraFreeMode = !_cameraFreeMode;
+				_playerEntity.Controller<PlayerController>().Enabled = !_cameraFreeMode;
+			}
 
 			#region Circle brush
-
-			var mouseState = Mouse.GetState();
 
 			// Translate the mouse position to the scene.
 			var mousePosition = new Vector3(mouseState.X, mouseState.Y, 0.0f);
@@ -157,10 +258,10 @@ namespace LD28.Screens
 				_circleBrushNode.FindMovable<CircleRenderable>().Color = Vector3.One;
 			}
 
-			// Store old mouse state.
-			_oldMouseState = mouseState;
-
 			#endregion
+
+			_oldKeyboardState = keyboardState;
+			_oldMouseState = mouseState;
 		}
 
 		public void Draw(GameTime gameTime)

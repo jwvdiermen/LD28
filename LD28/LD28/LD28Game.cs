@@ -90,10 +90,17 @@ namespace LD28
 		protected override void Update(GameTime gameTime)
 		{
 			// Allows the game to exit
-			if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
+			if (Keyboard.GetState().IsKeyDown(Keys.Escape) ||
+				GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
 			{
 				Exit();
 			}
+
+			//if ((Keyboard.GetState().IsKeyDown(Keys.LeftShift) || Keyboard.GetState().IsKeyDown(Keys.RightShift))
+			//    && Keyboard.GetState().IsKeyDown(Keys.Enter))
+			//{
+			//    _graphics.ToggleFullScreen();
+			//}
 
 			base.Update(gameTime);
 		}

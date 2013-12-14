@@ -192,8 +192,9 @@ namespace LD28.Entities.Terrain
 		/// </summary>
 		/// <param name="brush">The brush.</param>
 		/// <param name="state">The state, either enabled or disabled.</param>
+		/// <param name="suppressUpdate">If true, does not update if any quads changed state.</param>
 		/// <returns>True if any quads were changed.</returns>
-		public bool SetQuads(ITerrainBrush brush, bool state)
+		public bool SetQuads(ITerrainBrush brush, bool state, bool suppressUpdate = false)
 		{
 			var position = Position;
 			var offset = new Vector2(position.X, position.Y);
@@ -208,6 +209,17 @@ namespace LD28.Entities.Terrain
 			}
 
 			return result;
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public void Refresh()
+		{
+			CollectGeometry(true, ref _enabledVertexBuffer, ref _enabledIndexBuffer);
+			CollectGeometry(false, ref _disabledVertexBuffer, ref _disabledIndexBuffer);
+
+			Root.UpdateFixtures(Body);
 		}
 	}
 }

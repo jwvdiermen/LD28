@@ -155,40 +155,41 @@ namespace LD28.Entities.Terrain
 		/// <param name="gameTime">The game time.</param>
 		/// <param name="camera">The camera.</param>
 		public void Draw(GameTime gameTime, ICamera camera)
-		{			
+		{
 			_graphics.RasterizerState = _debugRasterizerState;
 
 			// Set the debug effect's parameters.
 			Matrix projectionMatrix, viewMatrix;
 			camera.GetMatrices(out projectionMatrix, out viewMatrix);
 
-
-			// Draw the enabled quads.
-			_debugEffect.DiffuseColor = new Vector3(0.0f, 0.0f, 1.0f);
-			foreach (var quadTree in _blockGrid)
+			if (DebugEnabled)
 			{
-				_debugEffect.Projection = projectionMatrix;
-				_debugEffect.View = viewMatrix;
-				_debugEffect.World = quadTree.SceneNode.Transformation;
-				foreach (var effectPass in _debugEffect.CurrentTechnique.Passes)
+				// Draw the enabled quads.
+				_debugEffect.DiffuseColor = new Vector3(0.0f, 0.0f, 1.0f);
+				foreach (var quadTree in _blockGrid)
 				{
-					effectPass.Apply();
-					quadTree.Draw(true);
+					_debugEffect.Projection = projectionMatrix;
+					_debugEffect.View = viewMatrix;
+					_debugEffect.World = quadTree.SceneNode.Transformation;
+					foreach (var effectPass in _debugEffect.CurrentTechnique.Passes)
+					{
+						effectPass.Apply();
+						quadTree.Draw(true);
+					}
 				}
-			}
-			
 
-			//// Draw the disabled quads.
-			_debugEffect.DiffuseColor = new Vector3(1.0f, 0.0f, 0.0f);
-			foreach (var quadTree in _blockGrid)
-			{
-				_debugEffect.Projection = projectionMatrix;
-				_debugEffect.View = viewMatrix;
-				_debugEffect.World = quadTree.SceneNode.Transformation;
-				foreach (var effectPass in _debugEffect.CurrentTechnique.Passes)
+				// Draw the disabled quads.
+				_debugEffect.DiffuseColor = new Vector3(1.0f, 0.0f, 0.0f);
+				foreach (var quadTree in _blockGrid)
 				{
-					effectPass.Apply();
-					quadTree.Draw(false);
+					_debugEffect.Projection = projectionMatrix;
+					_debugEffect.View = viewMatrix;
+					_debugEffect.World = quadTree.SceneNode.Transformation;
+					foreach (var effectPass in _debugEffect.CurrentTechnique.Passes)
+					{
+						effectPass.Apply();
+						quadTree.Draw(false);
+					}
 				}
 			}
 		}
@@ -198,8 +199,9 @@ namespace LD28.Entities.Terrain
 		/// </summary>
 		/// <param name="brush">The brush.</param>
 		/// <param name="state">The state, either enabled or disabled.</param>
+		/// <param name="suppressUpdate">If true, does not update if any quads changed state.</param>
 		/// <returns>True if any quads were changed.</returns>
-		public bool SetQuads(ITerrainBrush brush, bool state)
+		public bool SetQuads(ITerrainBrush brush, bool state, bool suppressUpdate = false)
 		{
 			bool changed = false;
 			foreach (var quadTree in _blockGrid)
@@ -211,6 +213,17 @@ namespace LD28.Entities.Terrain
 			}
 
 			return changed;
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public void Refresh()
+		{
+			foreach (var quadTree in _blockGrid)
+			{
+				quadTree.Refresh();
+			}
 		}
 	}
 }

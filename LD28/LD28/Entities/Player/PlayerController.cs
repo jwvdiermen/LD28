@@ -10,6 +10,13 @@ namespace LD28.Entities.Player
 	{
 		private SpaceShip _spaceShip;
 
+		public bool Enabled { get; set; }
+
+		public PlayerController()
+		{
+			Enabled = true;
+		}
+
 		protected override void OnAttached(IEntity entity)
 		{
 			_spaceShip = entity as SpaceShip;
@@ -26,7 +33,7 @@ namespace LD28.Entities.Player
 
 		public override void Update(GameTime gameTime, ICamera camera)
 		{
-			if (_spaceShip == null)
+			if (_spaceShip == null || !Enabled)
 			{
 				return;
 			}

@@ -1,4 +1,5 @@
-﻿using FarseerPhysics.Dynamics;
+﻿using System;
+using FarseerPhysics.Dynamics;
 using LD28.Scene;
 using Microsoft.Xna.Framework;
 
@@ -94,6 +95,11 @@ namespace LD28.Entity
 			get { return _body; }
 			protected set
 			{
+				if (World == null || (World != null && !(World is DynamicEntityWorld)))
+				{
+					throw new Exception("No or unsupported entity world.");
+				}
+
 				_body = value;
 				if (_position != null)
 				{
@@ -108,7 +114,7 @@ namespace LD28.Entity
 					q.Y = 0;
 					q.Normalize();
 
-					_body.Rotation = (float)(2.0 * System.Math.Acos(q.W));
+					_body.Rotation = (float)(2.0 * Math.Acos(q.W));
 
 					_orientation = null;
 				}

@@ -161,7 +161,9 @@ namespace LD28.Entities.Terrain
 				var size = _boundingBox.Max - min;
 				var halfSize = size / 2.0f;
 				var offset = new Vector2(min.X + halfSize.X, min.Y + halfSize.Y);
+				
 				_fixture = FixtureFactory.AttachRectangle(size.X, size.Y, 0.0f, offset, body);
+				_fixture.CollisionCategories = Category.Cat2;
 			}
 		}
 

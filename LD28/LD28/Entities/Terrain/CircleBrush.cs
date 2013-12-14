@@ -5,7 +5,7 @@ namespace LD28.Entities.Terrain
 	/// <summary>
 	/// A circular terrain brush.
 	/// </summary>
-	public class TerrainCircleBrush : ITerrainBrush
+	public class CircleBrush : ITerrainBrush
 	{
 		private BoundingSphere _boundingSphere;
 
@@ -21,7 +21,7 @@ namespace LD28.Entities.Terrain
 		/// Public constructor.
 		/// </summary>
 		/// <param name="radius">The circel radius.</param>
-		public TerrainCircleBrush(float radius)
+		public CircleBrush(float radius)
 		{
 			_boundingSphere = new BoundingSphere(Vector3.Zero, radius);
 		}
