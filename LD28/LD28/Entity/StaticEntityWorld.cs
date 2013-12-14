@@ -12,8 +12,17 @@ namespace LD28.Entity
 	/// </summary>
 	public class StaticEntityWorld : DisposableObject, IEntityWorld
 	{
-		#region Constructors
+		private readonly IServiceProvider _services;
 
+		private IScene _scene;
+
+		private volatile bool _isUpdating = false;
+
+		private List<IEntity> _entityAddQueue = new List<IEntity>();
+		private List<IEntity> _entityRemoveQueue = new List<IEntity>();
+		private List<IEntity> _entityList = new List<IEntity>();
+
+		
 		/// <summary>
 		/// This constructor creates a new static entity world using a default scene (<see cref="DefaultScene" />).
 		/// </summary>
@@ -41,24 +50,6 @@ namespace LD28.Entity
 				renderable.LoadContent(_services);
 			}
 		}
-
-		#endregion
-
-		#region Fields
-
-		private readonly IServiceProvider _services;
-
-		private IScene _scene;
-
-		private volatile bool _isUpdating = false;
-
-		private List<IEntity> _entityAddQueue = new List<IEntity>();
-		private List<IEntity> _entityRemoveQueue = new List<IEntity>();
-		private List<IEntity> _entityList = new List<IEntity>();
-
-		#endregion
-
-		#region Methods
 
 		private void Scene_MovableAdded(IScene scene, IMovable movable)
 		{
@@ -108,12 +99,6 @@ namespace LD28.Entity
 			}
 		}
 
-		#endregion
-
-		#region IEntityWorld Members
-
-		#region Properties
-
 		public IScene Scene
 		{
 			get { return _scene; }
@@ -124,11 +109,7 @@ namespace LD28.Entity
 			get { return _entityList; }
 		}
 
-		#endregion
-
-		#region Methods
-
-		public void Add(IEntity entity)
+		public virtual void Add(IEntity entity)
 		{
 			if (_entityAddQueue.Contains(entity) == false && _entityList.Contains(entity) == false)
 			{
@@ -164,7 +145,7 @@ namespace LD28.Entity
 			}
 		}
 
-		public void Remove(IEntity entity)
+		public virtual void Remove(IEntity entity)
 		{
 			if (_entityAddQueue.Contains(entity) == true)
 			{
@@ -215,7 +196,7 @@ namespace LD28.Entity
 			}
 		}
 
-		public void Update(GameTime time, ICamera camera)
+		public virtual void Update(GameTime time, ICamera camera)
 		{
 			_isUpdating = true;
 
@@ -270,9 +251,5 @@ namespace LD28.Entity
 				}
 			}
 		}
-
-		#endregion
-
-		#endregion
 	}
 }
