@@ -215,6 +215,7 @@ namespace LD28.Movables
 				_basicEffect.World = SceneNode.Transformation;
 
 				// Set the rasterizer state.
+				_graphics.DepthStencilState = DepthStencilState.Default;
 				_graphics.BlendState = BlendState.AlphaBlend;
 				_graphics.RasterizerState = _rasterizerState;
 

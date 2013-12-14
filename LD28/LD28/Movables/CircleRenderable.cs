@@ -67,7 +67,7 @@ namespace LD28.Movables
 		protected override void DisposeUnmanaged()
 		{
 			base.DisposeUnmanaged();
-			this.UnloadContent();
+			UnloadContent();
 		}
 
 		public void LoadContent(IServiceProvider services)

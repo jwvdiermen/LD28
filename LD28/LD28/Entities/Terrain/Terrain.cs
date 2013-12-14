@@ -4,6 +4,7 @@ using FarseerPhysics.Factories;
 using LD28.Entity;
 using LD28.Scene;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace LD28.Entities.Terrain
@@ -20,6 +21,9 @@ namespace LD28.Entities.Terrain
 		private QuadTree[,] _blockGrid;
 
 		private GraphicsDevice _graphics;
+
+		private readonly RasterizerState _rasterizerState;
+		private BasicEffect _effect;
 
 		private readonly RasterizerState _debugRasterizerState;
 		private BasicEffect _debugEffect;
@@ -50,6 +54,15 @@ namespace LD28.Entities.Terrain
 		}
 
 		/// <summary>
+		/// 
+		/// </summary>
+		public string TextureName
+		{
+			get;
+			set;
+		}
+
+		/// <summary>
 		/// Public constructor.
 		/// </summary>
 		/// <param name="terrainSize">The size of the terrain.</param>
@@ -73,6 +86,11 @@ namespace LD28.Entities.Terrain
 			_maxDepth = maxDepth;
 
 			DebugEnabled = false;
+			_rasterizerState = new RasterizerState
+			{
+				CullMode = CullMode.CullCounterClockwiseFace,
+				FillMode = FillMode.Solid
+			};
 			_debugRasterizerState = new RasterizerState
 			{
 				CullMode = CullMode.CullCounterClockwiseFace,
@@ -89,8 +107,22 @@ namespace LD28.Entities.Terrain
 		{
 			// Get the necessary services.
 			_graphics = ((IGraphicsDeviceService)services.GetService(typeof(IGraphicsDeviceService))).GraphicsDevice;
-			
-			// Load our content.			
+			var content = (ContentManager)services.GetService(typeof(ContentManager));
+
+			// Load our content.	
+			Texture2D texture = null;
+			if (!String.IsNullOrEmpty(TextureName))
+			{
+				texture = content.Load<Texture2D>(TextureName);
+			}
+
+			_effect = new BasicEffect(_graphics)
+			{
+				DiffuseColor = Vector3.One,
+				Texture = texture,
+				TextureEnabled = texture != null
+			};
+		
 			_debugEffect = new BasicEffect(_graphics)
 			{
 				DiffuseColor = new Vector3(1.0f, 0.0f, 0.0f)
@@ -126,6 +158,7 @@ namespace LD28.Entities.Terrain
 		{
 			// Dispose our content.
 			_debugEffect.Dispose();
+			_effect.Dispose();
 
 			// Dispose the quad trees.
 			if (_blockGrid != null)
@@ -156,14 +189,30 @@ namespace LD28.Entities.Terrain
 		/// <param name="camera">The camera.</param>
 		public void Draw(GameTime gameTime, ICamera camera)
 		{
-			_graphics.RasterizerState = _debugRasterizerState;
+			_graphics.RasterizerState = _rasterizerState;
+			_graphics.DepthStencilState = DepthStencilState.Default;
 
 			// Set the debug effect's parameters.
 			Matrix projectionMatrix, viewMatrix;
 			camera.GetMatrices(out projectionMatrix, out viewMatrix);
 
+			// Draw the enabled quads.
+			foreach (var quadTree in _blockGrid)
+			{
+				_effect.Projection = projectionMatrix;
+				_effect.View = viewMatrix;
+				_effect.World = quadTree.SceneNode.Transformation;
+				foreach (var effectPass in _effect.CurrentTechnique.Passes)
+				{
+					effectPass.Apply();
+					quadTree.Draw(true);
+				}
+			}
+
 			if (DebugEnabled)
 			{
+				_graphics.RasterizerState = _debugRasterizerState;
+
 				// Draw the enabled quads.
 				_debugEffect.DiffuseColor = new Vector3(0.0f, 0.0f, 1.0f);
 				foreach (var quadTree in _blockGrid)

@@ -56,7 +56,7 @@ namespace LD28.Entity
 					q.Y = 0;
 					q.Normalize();
 
-					_body.Rotation = (float)(2.0 * System.Math.Acos(q.W));
+					_body.Rotation = (float)(2.0 * Math.Acos(q.W));
 				}
 				else
 				{

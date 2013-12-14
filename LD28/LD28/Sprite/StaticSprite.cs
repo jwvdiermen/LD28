@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.Mime;
 using LD28.Scene;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -15,7 +16,21 @@ namespace LD28.Sprite
 		private IndexBuffer _indexBuffer;
 		private VertexBuffer _vertexBuffer;
 
-		#region Constructors
+		public SpriteEffects Effects { get; set; }
+
+		public BlendState BlendState { get; set; }
+
+		public RasterizerState RasterizerState { get; set; }
+
+		public SamplerState SamplerState { get; set; }
+
+		public Vector2 Size { get; protected set; }
+
+		public Vector2 Pivot { get; protected set; }
+
+		public Texture2D Texture { get; protected set; }
+
+		public Rectangle Source { get; protected set; }
 
 		/// <summary> 
 		/// Creates a new static sprite.
@@ -34,7 +49,14 @@ namespace LD28.Sprite
 		{
 			RasterizerState = RasterizerState.CullClockwise;
 			BlendState = BlendState.AlphaBlend;
-			SamplerState = SamplerState.AnisotropicClamp;
+
+			SamplerState = new SamplerState
+			{
+				AddressU = TextureAddressMode.Clamp,
+				AddressV = TextureAddressMode.Clamp,
+				AddressW = TextureAddressMode.Clamp,
+				Filter = TextureFilter.LinearMipPoint
+			};
 		}
 
 		/// <summary>
@@ -89,24 +111,6 @@ namespace LD28.Sprite
 			Source = source != null ? (Rectangle)source : new Rectangle(0, 0, texture.Width, texture.Height);
 		}
 
-		#endregion
-
-		public SpriteEffects Effects { get; set; }
-
-		public BlendState BlendState { get; set; }
-
-		public RasterizerState RasterizerState { get; set; }
-
-		public SamplerState SamplerState { get; set; }
-
-		public Vector2 Size { get; protected set; }
-
-		public Vector2 Pivot { get; protected set; }
-
-		public Texture2D Texture { get; protected set; }
-
-		public Rectangle Source { get; protected set; }
-
 		public void Update(GameTime time, ICamera camera)
 		{
 		}
@@ -126,32 +130,32 @@ namespace LD28.Sprite
 			// Generate the vertex buffer.
 			Vector2 topLeft = -Pivot;
 			var vertices = new[]
-			               {
-				               new VertexPositionColorTexture
-				               {
-					               Position = new Vector3(topLeft.X, topLeft.Y, 0.0f),
-					               TextureCoordinate = new Vector2(uvTopLeft.X, uvTopLeft.Y),
-					               Color = Color.White
-				               },
-				               new VertexPositionColorTexture
-				               {
-					               Position = new Vector3(topLeft.X + Size.X, topLeft.Y, 0.0f),
-					               TextureCoordinate = new Vector2(uvBottomRight.X, uvTopLeft.Y),
-					               Color = Color.White
-				               },
-				               new VertexPositionColorTexture
-				               {
-					               Position = new Vector3(topLeft.X + Size.X, topLeft.Y + Size.Y, 0.0f),
-					               TextureCoordinate = new Vector2(uvBottomRight.X, uvBottomRight.Y),
-					               Color = Color.White
-				               },
-				               new VertexPositionColorTexture
-				               {
-					               Position = new Vector3(topLeft.X, topLeft.Y + Size.Y, 0.0f),
-					               TextureCoordinate = new Vector2(uvTopLeft.X, uvBottomRight.Y),
-					               Color = Color.White
-				               }
-			               };
+			{
+				new VertexPositionColorTexture
+				{
+					Position = new Vector3(topLeft.X, topLeft.Y, 0.0f),
+					TextureCoordinate = new Vector2(uvTopLeft.X, uvTopLeft.Y),
+					Color = Color.White
+				},
+				new VertexPositionColorTexture
+				{
+					Position = new Vector3(topLeft.X + Size.X, topLeft.Y, 0.0f),
+					TextureCoordinate = new Vector2(uvBottomRight.X, uvTopLeft.Y),
+					Color = Color.White
+				},
+				new VertexPositionColorTexture
+				{
+					Position = new Vector3(topLeft.X + Size.X, topLeft.Y + Size.Y, 0.0f),
+					TextureCoordinate = new Vector2(uvBottomRight.X, uvBottomRight.Y),
+					Color = Color.White
+				},
+				new VertexPositionColorTexture
+				{
+					Position = new Vector3(topLeft.X, topLeft.Y + Size.Y, 0.0f),
+					TextureCoordinate = new Vector2(uvTopLeft.X, uvBottomRight.Y),
+					Color = Color.White
+				}
+			};
 
 			_vertexBuffer = new VertexBuffer(_graphics, VertexPositionColorTexture.VertexDeclaration, vertices.Length,
 			                                  BufferUsage.None);
@@ -165,11 +169,11 @@ namespace LD28.Sprite
 
 			// Create the effect.
 			_basicEffect = new BasicEffect(_graphics)
-			               {
-				               Texture = Texture, 
-							   TextureEnabled = true, 
-							   DiffuseColor = Vector3.One
-			               };
+			{
+				Texture = Texture,
+				TextureEnabled = true,
+				DiffuseColor = Vector3.One
+			};
 		}
 
 		public virtual void UnloadContent()
@@ -204,6 +208,7 @@ namespace LD28.Sprite
 				_basicEffect.World = SceneNode.Transformation;
 
 				// Set the rasterizer state.
+				_graphics.DepthStencilState = DepthStencilState.Default;
 				_graphics.BlendState = BlendState;
 				_graphics.RasterizerState = RasterizerState;
 				_graphics.SamplerStates[0] = SamplerState;

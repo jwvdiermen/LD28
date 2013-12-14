@@ -66,9 +66,6 @@
     <Reference Include="FarseerPhysicsXNA">
       <HintPath>..\..\Dependencies\FarseerPhysicsXNA.dll</HintPath>
     </Reference>
-    <Reference Include="LibNoiseXNA">
-      <HintPath>..\..\Dependencies\LibNoiseXNA.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Xna.Framework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=842cf8be1de50553, processorArchitecture=x86">
       <Private>False</Private>
     </Reference>
@@ -166,6 +163,10 @@
     <Compile Include="Entity\PhysicalEntityBase.cs" />
     <Compile Include="Entity\StaticEntityWorld.cs" />
     <Compile Include="Movables\DustCloud.cs" />
+    <Compile Include="Movables\GeometricPrimitive.cs" />
+    <Compile Include="Movables\SpherePrimitive.cs" />
+    <Compile Include="Movables\TorusPrimitive.cs" />
+    <Compile Include="Movables\VertexPositionNormal.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="LD28Game.cs" />

@@ -12,6 +12,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System;
 
 namespace LD28.Screens
 {
@@ -74,10 +75,11 @@ namespace LD28.Screens
 
 			// Create the tile map.
 			var terrainSize = new Vector2(4096.0f, 2048.0f);
-			_terrain = new Terrain(terrainSize, 128.0f, 6)
+			_terrain = new Terrain(terrainSize, 128.0f, 7)
 			{
 				DebugEnabled = false,
-				Position = new Vector3(50.0f, -terrainSize.Y / 2.0f, 0.0f)
+				Position = new Vector3(50.0f, -terrainSize.Y / 2.0f, 0.0f),
+				TextureName = @"Textures\SpaceRock"
 			};
 			_world.Add(_terrain);
 
@@ -94,6 +96,7 @@ namespace LD28.Screens
 
 			// Dust cloud
 			_dustCloud = _world.Scene.CreateSceneNode("DustCloud");
+			_dustCloud.Position = new Vector3(0.0f, 0.0f, -1.0f);
 			_dustCloud.Attach(new DustCloud());
 			_world.Scene.Root.AddChild(_dustCloud);
 
@@ -117,16 +120,17 @@ namespace LD28.Screens
 			_debugView.Dispose();
 		}
 
-		private void GenerateTunnels(Vector2 start, float maxLength = 4000.0f, float turnStrength = 0.1f)
+		private void GenerateTunnels(Vector2 start, float maxLength = 2000.0f, float turnStrength = 0.2f)
 		{
 			//1234
+			//12345
 			//498764867
 			//582764
-			var random = new FastRandom(12345);
-			const float step = 1.0f;
+			var random = new FastRandom(498764867);
+			const float step = 2.0f;
 
 			var terrainHeight = _terrain.TerrainSize.Y / 2.0f;
-			var maxSize = new Vector2(20.0f);
+			var maxSize = new Vector2(30.0f);
 
 			var currentPosition = start;
 			var currentDirection = Vector2.UnitX;
@@ -134,9 +138,11 @@ namespace LD28.Screens
 			var length = 0.0f;
 			while (length < maxLength)
 			{
-				var brushSize = new Vector2(random.NextFloat() * maxSize.X, random.NextFloat() * maxSize.Y);
-				var brush = new RectangleBrush(
-					brushSize, 
+				var currentSize = maxSize + new Vector2(Math.Max(0.0f, length + 200.0f - maxLength)) * 1.0f;
+
+				var brushSize = new Vector2(random.NextFloat() * currentSize.X, random.NextFloat() * currentSize.Y);
+				var brush = new CircleBrush(
+					(brushSize.X + brushSize.Y) / 4.0f, 
 					currentPosition + new Vector2(random.NextRangedFloat(), random.NextRangedFloat()));
 
 				_terrain.SetQuads(brush, false, true);
@@ -278,9 +284,9 @@ namespace LD28.Screens
 				renderable.Render(gameTime, _camera);
 			}
 
-			Matrix projectionMatrix, viewMatrix;
-			_camera.GetMatrices(out projectionMatrix, out viewMatrix);
-			_debugView.RenderDebugData(ref projectionMatrix, ref viewMatrix);
+			//Matrix projectionMatrix, viewMatrix;
+			//_camera.GetMatrices(out projectionMatrix, out viewMatrix);
+			//_debugView.RenderDebugData(ref projectionMatrix, ref viewMatrix);
 		}
 	}
 }

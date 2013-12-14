@@ -29,9 +29,10 @@ namespace LD28
 			// Set a default size for the window.
 			_graphics.PreferredBackBufferWidth = 1280;
 			_graphics.PreferredBackBufferHeight = 720;
+			_graphics.PreferMultiSampling = true;
 
 			// We don't need a depth stencil in this game.
-			_graphics.PreferredDepthStencilFormat = DepthFormat.None;
+			_graphics.PreferredDepthStencilFormat = DepthFormat.Depth16;
 
 			// Initialize the content manager.
 			Content.RootDirectory = "Content";

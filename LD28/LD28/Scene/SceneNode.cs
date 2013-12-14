@@ -218,7 +218,7 @@ namespace LD28.Scene
 			{
 				// When the parent changes, the scene node should remain on the old position.
 				// To realize this, we need that the global transformations are known.
-				TransformLocalToGlobal();
+				//TransformLocalToGlobal();
 
 				if (_parent == null && value != null)
 				{
@@ -703,16 +703,14 @@ namespace LD28.Scene
 		{
 			if (Parent != null)
 			{
-				if (_globalPosition == null || _globalOrientation == null)
+				if (_globalPosition == null)
 				{
-					var ma = Matrix.CreateFromQuaternion(_localOrientation.GetValueOrDefault(Quaternion.Identity)) *
-							Matrix.CreateTranslation(_localPosition.GetValueOrDefault(Vector3.Zero));
-					var mb = Parent.Transformation;
-					var mab = ma * mb;
-
-					_globalPosition = mab.Translation;
-					_globalOrientation = Quaternion.CreateFromRotationMatrix(mab);
-					_globalTransformation = mab;
+					_globalPosition = Parent.Position + _localPosition.GetValueOrDefault(Vector3.Zero);
+				}
+				
+				if (_globalOrientation == null)
+				{
+					_globalOrientation = Parent.Orientation * _localOrientation.GetValueOrDefault(Quaternion.Identity);
 				}
 
 				if (_globalScale == null)

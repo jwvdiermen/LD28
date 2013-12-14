@@ -4,7 +4,10 @@ using FarseerPhysics.Factories;
 using LD28.Core;
 using LD28.Entity;
 using LD28.Scene;
+using LD28.Sprite;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace LD28.Entities.Player
 {
@@ -95,6 +98,12 @@ namespace LD28.Entities.Player
 		public override void LoadContent(IServiceProvider services)
 		{
 			base.LoadContent(services);
+			var content = (ContentManager)services.GetService(typeof(ContentManager));
+
+			var texture = content.Load<Texture2D>(@"Sprites\SpaceShip");
+			var sprite = new StaticSprite(new Vector2(2.0f, 6.0f),  texture, Name + "_Sprite", new Rectangle(0, 0, 128, 386));
+
+			SceneNode.Attach(sprite);
 		}
 
 		public override void UnloadContent()

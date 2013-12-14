@@ -17,6 +17,7 @@ namespace LD28.Entities.Terrain
 	{
 		private GraphicsDevice _graphics;
 		private World _physicsWorld;
+		private readonly Vector2 _size;
 
 		private VertexBuffer _enabledVertexBuffer;
 		private IndexBuffer _enabledIndexBuffer;
@@ -38,6 +39,7 @@ namespace LD28.Entities.Terrain
 		public QuadTree(int maxDepth, Vector2 size, string name)
 			: base(name)
 		{
+			_size = size;
 			Root = new QuadTreeNode(null, maxDepth, new BoundingBox(Vector3.Zero, new Vector3(size, 0.0f)), true);
 		}
 
@@ -152,11 +154,12 @@ namespace LD28.Entities.Terrain
 			// Create the hardware resources.
 			if (vertices.Count > 0 && indices.Count > 0)
 			{
-				vertexBuffer = new VertexBuffer(_graphics, VertexPositionColor.VertexDeclaration, vertices.Count, BufferUsage.None);
-				vertexBuffer.SetData(vertices.Select(e => new VertexPositionColor
+				vertexBuffer = new VertexBuffer(_graphics, VertexPositionColorTexture.VertexDeclaration, vertices.Count, BufferUsage.None);
+				vertexBuffer.SetData(vertices.Select(e => new VertexPositionColorTexture
 				{
 					Position = new Vector3(e, 0.0f),
-					Color = Color.White
+					Color = Color.White,
+					TextureCoordinate = e / _size
 
 				}).ToArray());
 

@@ -16,7 +16,7 @@ namespace LD28.Entities.Terrain
 		{
 			get { return _boundingSphere.Radius; }
 		}
-		
+
 		/// <summary>
 		/// Public constructor.
 		/// </summary>
@@ -24,6 +24,17 @@ namespace LD28.Entities.Terrain
 		public CircleBrush(float radius)
 		{
 			_boundingSphere = new BoundingSphere(Vector3.Zero, radius);
+		}
+
+		/// <summary>
+		/// Public constructor.
+		/// </summary>
+		/// <param name="radius">The circel radius.</param>
+		/// <param name="position">The position.</param>
+		public CircleBrush(float radius, Vector2 position)
+		{
+			_boundingSphere = new BoundingSphere(Vector3.Zero, radius);
+			Position = position;
 		}
 
 		public Vector2 Position
